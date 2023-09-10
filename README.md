@@ -3,7 +3,7 @@
 ## Prompt
 Write Noir, Halo2 and Circom circuits that constrain integer division i.e decimals are truncated. For example 12 / 5 = 2
 
-Inputs: x, y
+Inputs: x, y where x and y are nonnegative integers < 2^32 bits
 Outputs: quotient
 
 ## Setup
