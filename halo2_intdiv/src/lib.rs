@@ -35,6 +35,27 @@ impl <'range, F: ScalarField> IntegerDivisionChip<F> {
     ) -> AssignedValue<F> {
         // TODO: implement!
         // ...
+        
+        // Calculate quotient and remainder using native Rust
+        let quo = x / y;
+        let rem = x % y;
+
+        // Assign calculated values to the table
+        let x = ctx.load_witness(F::from(x as u64));
+        let quo = ctx.load_witness(F::from(quo as u64));
+        let rem = ctx.load_witness(F::from(rem as u64));
+
+        // check quo and rem are both < 32 bits
+        // quo * y + rem = x
+        // rem in [0, quo)
+        self.range.range_check(ctx, quo, 32);
+        self.range.range_check(ctx, rem, 32);
+
+        // Reconstruct x from quotient and remainder and constrain
+        let reconstructed_x = self.range.gate().mul_add(ctx, quo, Constant(F::from(y as u64)), rem);
+        ctx.constrain_equal(&x, &reconstructed_x);
+
+        quo
     }
 }
 

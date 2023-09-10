@@ -7,7 +7,19 @@ template IntegerDivision () {
     signal input y;
     signal output quotient;
     
-    // TODO: implement integer division in Circom!
+    quotient <-- x \ y;
+    signal rem;
+    rem <-- x % y;
+
+    component ltrem = LessThan(32);
+    ltrem.in[0] <== quotient;
+    ltrem.in[1] <== x;
+
+    component ltquo = LessThan(32);
+    ltquo.in[0] <== rem;
+    ltquo.in[1] <== x;
+
+    x === quotient * y + rem;
 }
 
 component main { public [ x ] } = IntegerDivision();
