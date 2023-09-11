@@ -39,24 +39,26 @@ impl <'range, F: ScalarField> IntegerDivisionChip<F> {
     ) -> AssignedValue<F> {
         // TODO: implement!
         // ...
-        
     }
 }
 
+#[cfg(feature = "dev-graph")]
 #[cfg(test)]
 mod test {
     use super::*;
+    use plotters::prelude::*;
     use halo2_base::gates::builder::{GateThreadBuilder, RangeCircuitBuilder};
     use halo2_base::halo2_proofs::{halo2curves::bn256::Fr, dev::MockProver};
 
     #[test]
     fn test_integer_division() {
         env_logger::init();
+        std::env::set_var("RUST_LOG", true.to_string());
 
-        let k = 16;
+        let k = 6;
         // Configure builder
         let mut builder = GateThreadBuilder::<Fr>::mock();
-        let lookup_bits = 8;
+        let lookup_bits = 5;
         // NOTE: Need to set var to load lookup table
         std::env::set_var("LOOKUP_BITS", lookup_bits.to_string());
         
@@ -84,6 +86,15 @@ mod test {
         // Create mock circuit
         let circuit = RangeCircuitBuilder::mock(builder);
         
+        // Plot layout
+        let root = BitMapBackend::new("layout.png", (1024, 1024)).into_drawing_area();
+        root.fill(&WHITE).unwrap();
+        let root = root.titled("Layout", ("sans-serif", 60)).unwrap();
+        halo2_base::halo2_proofs::dev::CircuitLayout::default()
+            // The first argument is the size parameter for the circuit.
+            .render((k) as u32, &circuit, &root)
+            .unwrap();
+
         // Run mock prover to ensure output is correct
         MockProver::run(k as u32, &circuit, vec![]).unwrap().assert_satisfied();
     }
