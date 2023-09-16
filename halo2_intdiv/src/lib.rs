@@ -9,17 +9,13 @@ use std::marker::PhantomData;
 #[derive(Clone, Debug)]
 pub struct IntegerDivisionChip<F: ScalarField> {
     pub range: RangeChip<F>,
-    pub lookup_bits: usize,
     _marker: PhantomData<F>,
 }
 
 impl <'range, F: ScalarField> IntegerDivisionChip<F> {
-    pub fn new(lookup_bits: usize) -> Self {
-        let range = RangeChip::<F>::default(lookup_bits);
-
+    pub fn new(range: RangeChip<F>) -> Self {
         Self {
             range,
-            lookup_bits,
             _marker: PhantomData,
         }
     }
@@ -42,13 +38,11 @@ impl <'range, F: ScalarField> IntegerDivisionChip<F> {
     }
 }
 
-#[cfg(feature = "dev-graph")]
 #[cfg(test)]
 mod test {
     use super::*;
-    use plotters::prelude::*;
-    use halo2_base::gates::builder::{GateThreadBuilder, RangeCircuitBuilder};
-    use halo2_base::halo2_proofs::{halo2curves::bn256::Fr, dev::MockProver};
+    use halo2_base::utils::testing::base_test;
+    use halo2_base::halo2_proofs::halo2curves::bn256::Fr;
 
     #[test]
     fn test_integer_division() {
@@ -56,46 +50,25 @@ mod test {
         std::env::set_var("RUST_LOG", true.to_string());
 
         let k = 6;
-        // Configure builder
-        let mut builder = GateThreadBuilder::<Fr>::mock();
-        let lookup_bits = 5;
-        // NOTE: Need to set var to load lookup table
-        std::env::set_var("LOOKUP_BITS", lookup_bits.to_string());
         
         // Circuit inputs
         let x = 12;
         let y = 5;
-
-        // Configure black scholes chip
-        let chip = IntegerDivisionChip::<Fr>::new(lookup_bits);
         
-        let result = chip.integer_division(
-            builder.main(0),
-            x,
-            y
-        );
+        base_test().k(k as u32).lookup_bits(k - 1).run(|ctx, range| {
+            let range = range.clone();
+            let chip = IntegerDivisionChip::<Fr>::new(range);
 
-        let expected_result = 12 / 5;
-
-        // Run test
-        assert_eq!(result.value(), &Fr::from(expected_result));
-
-        // Minimum rows is the number of rows used for blinding factors
-        // This depends on the circuit itself, but we can guess the number and change it if something breaks (default 9 usually works)
-        builder.config(k, Some(9));
-        // Create mock circuit
-        let circuit = RangeCircuitBuilder::mock(builder);
-        
-        // Plot layout
-        let root = BitMapBackend::new("layout.png", (1024, 1024)).into_drawing_area();
-        root.fill(&WHITE).unwrap();
-        let root = root.titled("Layout", ("sans-serif", 60)).unwrap();
-        halo2_base::halo2_proofs::dev::CircuitLayout::default()
-            // The first argument is the size parameter for the circuit.
-            .render((k) as u32, &circuit, &root)
-            .unwrap();
-
-        // Run mock prover to ensure output is correct
-        MockProver::run(k as u32, &circuit, vec![]).unwrap().assert_satisfied();
+            let result = chip.integer_division(
+                ctx,
+                x,
+                y
+            );
+    
+            let expected_result = 12 / 5;
+    
+            // Run test
+            assert_eq!(result.value(), &Fr::from(expected_result));
+        });
     }
 }
