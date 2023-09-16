@@ -48,8 +48,17 @@ impl <'range, F: ScalarField> IntegerDivisionChip<F> {
         // check quo and rem are both < 32 bits
         // quo * y + rem = x
         // rem in [0, quo)
-        self.range.range_check(ctx, quo, 32);
         self.range.range_check(ctx, rem, 32);
+        self.range.range_check(ctx, quo, 32);
+        
+        // MALICIOUS PROVER EXAMPLE
+        // 1. Comment out quo range check
+        // 2. Uncomment below
+        // 3. Comment out Rust assert check in test
+        // let rem = F::from(0);
+        // let quo = *x.value() * F::from(y as u64).invert().unwrap();
+        // let quo = ctx.load_witness(F::from(quo));
+        // let rem = ctx.load_witness(F::from(rem));
 
         // Reconstruct x from quotient and remainder and constrain
         let reconstructed_x = self.range.gate().mul_add(ctx, quo, Constant(F::from(y as u64)), rem);
@@ -87,7 +96,7 @@ mod test {
             );
     
             let expected_result = 12 / 5;
-    
+            
             // Run test
             assert_eq!(result.value(), &Fr::from(expected_result));
         });
