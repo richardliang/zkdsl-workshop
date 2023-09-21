@@ -1,4 +1,3 @@
-use halo2_base::{self, QuantumCell::Constant};
 use halo2_base::{
     gates::{GateInstructions, RangeChip, RangeInstructions},
     utils::ScalarField,
@@ -42,26 +41,17 @@ impl <'range, F: ScalarField> IntegerDivisionChip<F> {
 
         // Assign calculated values to the table
         let x = ctx.load_witness(F::from(x as u64));
+        let y_assigned = ctx.load_witness(F::from(y as u64));
         let quo = ctx.load_witness(F::from(quo as u64));
         let rem = ctx.load_witness(F::from(rem as u64));
 
-        // check quo and rem are both < 32 bits
         // quo * y + rem = x
-        // rem in [0, quo)
-        self.range.range_check(ctx, rem, 32);
+        // rem in [0, y)
+        self.range.check_less_than_safe(ctx, rem, y as u64);
         self.range.range_check(ctx, quo, 32);
-        
-        // MALICIOUS PROVER EXAMPLE
-        // 1. Comment out quo range check
-        // 2. Uncomment below
-        // 3. Comment out Rust assert check in test
-        // let rem = F::from(0);
-        // let quo = *x.value() * F::from(y as u64).invert().unwrap();
-        // let quo = ctx.load_witness(F::from(quo));
-        // let rem = ctx.load_witness(F::from(rem));
 
         // Reconstruct x from quotient and remainder and constrain
-        let reconstructed_x = self.range.gate().mul_add(ctx, quo, Constant(F::from(y as u64)), rem);
+        let reconstructed_x = self.range.gate().mul_add(ctx, quo, y_assigned, rem);
         ctx.constrain_equal(&x, &reconstructed_x);
 
         quo

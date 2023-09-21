@@ -17,7 +17,7 @@ template IntegerDivision () {
 
     component ltquo = LessThan(32);
     ltquo.in[0] <== rem;
-    ltquo.in[1] <== x;
+    ltquo.in[1] <== y;
 
     x === quotient * y + rem;
 }
